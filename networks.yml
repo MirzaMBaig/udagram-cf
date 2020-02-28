@@ -27,18 +27,26 @@ Resources:
   #         aws s3 cp s3://udacity-demo-1/udacity.zip .
   #         unzip -o udacity.zip
   VPC:
-    Type: AWS::EC2::VPCTest1
+    Type: AWS::EC2::VPC
     Properties:
-      CidrBlock: !Ref VpcCidr
+      CidrBlock:
+        Ref: VpcCidr
       EnableDnsSupport: true
       EnableDnsHostnames: true
       InstanceTenancy: default
       Tags:
       - Key: Name
-        Value: Udagram VPC !Ref VpcCidr
-  internetGateway:
+        Value: !Sub 'Udagram VPC ${VpcCidr}'
+  InternetGateway:
     Type: AWS::EC2::InternetGateway
     Properties:
       Tags:
-      - Key: foo
-        Value: bar
+      - Key: Name
+        Value: Udagram Internet gateway
+  AttachInternetGatewayTest
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId:
+        Ref: VPC
+      InternetGatewayId:
+        Ref: InternetGateway
