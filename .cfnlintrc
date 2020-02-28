@@ -1,0 +1,4 @@
+templates:
+- ./**/*.yml
+include_checks:
+- I
