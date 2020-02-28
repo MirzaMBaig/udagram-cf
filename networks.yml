@@ -44,7 +44,7 @@ Resources:
       - Key: Name
         Value: Udagram Internet gateway
   AttachInternetGateway:
-    Type: AWS::EC2::VPCGatewayAttachment
+    Type: AWS::EC2::VPCGatewayAttachmentTest
     Properties:
       VpcId:
         Ref: VPC
