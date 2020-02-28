@@ -27,7 +27,7 @@ Resources:
   #         aws s3 cp s3://udacity-demo-1/udacity.zip .
   #         unzip -o udacity.zip
   VPC:
-    Type: AWS::EC2::VPC
+    Type: AWS::EC2::VPCTest
     Properties:
       CidrBlock: !Ref VpcCidr
       EnableDnsSupport: true
@@ -36,9 +36,9 @@ Resources:
       Tags:
       - Key: Name
         Value: Udagram VPC !Ref VpcCidr
-  myInternetGateway:
-  Type: AWS::EC2::InternetGateway
-  Properties:
-    Tags:
-    - Key: foo
-      Value: bar
+  internetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+      - Key: foo
+        Value: bar
