@@ -3,4 +3,4 @@ repos:
     rev: v0.15.0 # The version of cfn-lint to use
     hooks:
     -   id: cfn-python-lint
-        files: templates/networks.yml
+        files: ./templates/networks.yml
