@@ -1,0 +1,12 @@
+project:
+  name: udagram
+tests:
+  mytest:
+    template: templates/networks.yml
+    regions:
+      - us-west-2
+    parameters:
+      S3BucketName: '$[taskcat_autobucket]'
+      S3KeyPrefix: 'udagram/'
+      LicenseToken: 'test-token'
+      AvailabilityZones: '$[taskcat_genaz_2]'

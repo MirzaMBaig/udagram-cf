@@ -1,0 +1,52 @@
+Parameters:
+# whatever you consider a changing value, put it as a parameter instead of hard-coding it into your script
+  VpcCidr:
+    Description: 'CIDR VPC (10.0.0.0/16)'
+    Type: String
+    AllowedValues:
+      - '10.0.0.0/16' # Testing
+    Default: 10.0.0.0/16
+  # SubnetCidr:
+  #   Description: 'CIDR VPC (10.0.0.0/24)'
+  #   Type: String
+  #   Default: 10.10.10.0/24
+Resources:
+  #instace profile contains the IAM Role name(s) that we want to associate to our auto scaling EC2 Servers
+  # ProfileWithRolesForOurApp:
+  #   Type: AWS::IAM::InstanceProfile
+  #   Properties: 
+  #     Roles:
+  #       - UdacityS3ReadOnlyEC2
+  
+  #         #!/bin/bash
+  #         apt-get update -y
+  #         apt-get install unzip awscli -y
+  #         apt-get install apache2 -y
+  #         systemctl start apache2.service
+  #         cd /var/www/html
+  #         aws s3 cp s3://udacity-demo-1/udacity.zip .
+  #         unzip -o udacity.zip
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock:
+        Ref: VpcCidr
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      InstanceTenancy: default
+      Tags:
+      - Key: Name
+        Value: !Sub 'Udagram VPC ${VpcCidr}'
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+      - Key: Name
+        Value: Udagram Internet gateway
+  AttachInternetGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId:
+        Ref: VPC
+      InternetGatewayId:
+        Ref: InternetGateway
