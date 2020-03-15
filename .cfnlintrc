@@ -1,4 +1,4 @@
 templates:
 - ./**/*.yml
-ignore_checks:
-- W
+include_checks:
+- I
