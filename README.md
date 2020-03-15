@@ -1,10 +1,19 @@
-# The architechture diagram
+# The architecture diagram
 
  ![architechture diagram](./resources/udagram_deployment.png)
 
  ### URL for accessing site:
  http://udagr-webap-1han5ptetj43c-2147280941.us-west-2.elb.amazonaws.com/
 
+### CODE 
+The cloud formation code is in templates folder
+### How the CF code stacks are defined
+  * Roles: 
+  All the roles are defined in ./templates/roles.yml
+  * Networking: 
+  All the vpc, subnets, etc are defined in ./templates/networks.yml
+  * Web Server: 
+  All the webserver, loadbalancer, listeners, security groups, launch configurations,etc are defined in ./templates/workloads.yml
 
  # cloudformation scripts to create infrastructure on aws 
 
