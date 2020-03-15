@@ -1,0 +1,259 @@
+Parameters:
+  EnvironmentName:
+    Type: String
+    Default: 'Udagram'
+    Description: 'EnvironmentName for the project'
+  InstanceType:
+    Type: String
+    Default: 't2.medium'
+    Description: 'Instance Type'
+  AMI:
+    Type: String
+    Default: 'ami-0d1cd67c26f5fca19'
+    Description: 'Ami for EC2 instance'
+  VolumeSize:
+    Type: Number
+    Default: 10
+    Description: 'Volume Size'
+
+Resources:
+    LoadBalancerSecurityGroup:
+      Type: AWS::EC2::SecurityGroup
+      Properties:
+        GroupDescription: Allow http to our load balancer
+        VpcId:
+          Fn::ImportValue:
+            !Sub "${EnvironmentName}-VPC"
+        SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+    
+    WebServerSecurityGroup:
+      Type: AWS::EC2::SecurityGroup
+      Properties:
+        GroupDescription: Allow http to our hosts and SSH from local only
+        VpcId:
+          Fn::ImportValue:
+            !Sub "${EnvironmentName}-VPC"
+        SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: 0
+          ToPort: 65535
+          CidrIp: 0.0.0.0/0
+    WebAppLaunchConfig:
+      Type: AWS::AutoScaling::LaunchConfiguration   
+      Properties:
+        AssociatePublicIpAddress: true
+        UserData:
+          Fn::Base64:   !Sub  |
+            #!/bin/bash
+            apt-get update -y
+            apt-get install unzip awscli -y
+            apt-get install apache2 -y
+            systemctl start apache2.service
+            cd /var/www/html
+            sudo rm -f index.html
+            aws s3 cp s3://mirza-udagram/udagram.zip .
+            sudo unzip -o udagram.zip
+        ImageId: !Sub '${AMI}'
+        # KeyName: ubuntuKeypair //removed - commented for demo purposes
+        SecurityGroups:
+        - Ref: WebServerSecurityGroup
+        InstanceType: !Sub "${InstanceType}"
+        IamInstanceProfile: 
+          Fn::ImportValue: AmazonS3ReadOnlyAccessInstanceProfile
+        BlockDeviceMappings:
+        - DeviceName: "/dev/sdk"
+          Ebs:
+            VolumeSize: !Sub '${VolumeSize}'
+
+    WebAppGroup:
+      Type: AWS::AutoScaling::AutoScalingGroup
+      Properties:
+        VPCZoneIdentifier:
+        - Fn::ImportValue:
+            !Sub "${EnvironmentName}-PRIV-NETS"
+        LaunchConfigurationName:
+          Ref: WebAppLaunchConfig
+        MinSize: '1'
+        MaxSize: '2'
+        TargetGroupARNs:
+        - Ref: WebAppTargetGroup
+   
+    WebAppLoadBalancer:
+      Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+      Properties:
+        Subnets:
+        - Fn::ImportValue: !Sub "${EnvironmentName}-PUB1-SN"
+        - Fn::ImportValue: !Sub "${EnvironmentName}-PUB2-SN"
+        SecurityGroups:
+        - Ref: LoadBalancerSecurityGroup
+    Listener:
+      Type: AWS::ElasticLoadBalancingV2::Listener
+      Properties:
+        DefaultActions:
+        - Type: forward
+          TargetGroupArn:
+            Ref: WebAppTargetGroup
+        LoadBalancerArn:
+          Ref: WebAppLoadBalancer
+        Port: 80
+        Protocol: HTTP
+    ALBListenerRule:
+      Type: AWS::ElasticLoadBalancingV2::ListenerRule
+      Properties:
+        Actions:
+        - Type: forward
+          TargetGroupArn: !Ref 'WebAppTargetGroup'
+        Conditions:
+        - Field: path-pattern
+          Values: [/]
+        ListenerArn: !Ref 'Listener'
+        Priority: 1
+    WebAppTargetGroup:
+      Type: AWS::ElasticLoadBalancingV2::TargetGroup
+      Properties:
+        HealthCheckIntervalSeconds: 10
+        HealthCheckPath: /
+        HealthCheckProtocol: HTTP
+        HealthCheckTimeoutSeconds: 8
+        HealthyThresholdCount: 2
+        Port: 80
+        Protocol: HTTP
+        UnhealthyThresholdCount: 5
+        VpcId: 
+          Fn::ImportValue:
+            Fn::Sub: "${EnvironmentName}-VPC"
+
+Outputs:
+  LoadBalancerDNSName: 
+      Description: Load Balancer DNS Name
+      Value: !Join [ "://", [ 'http', !GetAtt WebAppLoadBalancer.DNSName ] ]
+
+  # SecurityGroupWebServer1:
+  #   Type: AWS::EC2::SecurityGroup
+  #   Properties: 
+  #     GroupDescription: Web Server Security Group
+  #     GroupName: WebServerSecurityGroup
+  #     SecurityGroupEgress: 
+  #     -  CidrIp: 0.0.0.0/0
+  #        Description: SecurityGroupEgress
+  #        FromPort: 0
+  #        ToPort: 65535
+  #        IpProtocol: tcp
+  #     SecurityGroupIngress: 
+  #     - CidrIp: !Ref PublicSubnetCidr1
+  #       Description: SecurityGroupIngress
+  #       FromPort: 80
+  #       ToPort: 80
+  #       IpProtocol: tcp
+  #     - CidrIp: !Ref PublicSubnetCidr1
+  #       Description: SecurityGroupIngress
+  #       FromPort: 22
+  #       ToPort: 22
+  #       IpProtocol: tcp
+  #     Tags: 
+  #       - Key: Name
+  #         Value: "Web Server Security Group for specific resource"
+  #     VpcId: !Ref VPC
+
+  # SecurityGroupWebServer2:
+  #   Type: AWS::EC2::SecurityGroup
+  #   Properties: 
+  #     GroupDescription: Web Server Security Group2
+  #     GroupName: WebServerSecurityGroup2
+  #     SecurityGroupEgress: 
+  #     -  CidrIp: 0.0.0.0/0
+  #        Description: SecurityGroupEgress
+  #        FromPort: 0
+  #        ToPort: 65535
+  #        IpProtocol: tcp
+  #     SecurityGroupIngress: 
+  #     - CidrIp: !Ref PublicSubnetCidr2
+  #       Description: SecurityGroupIngress
+  #       FromPort: 80
+  #       ToPort: 80
+  #       IpProtocol: tcp
+  #     - CidrIp: !Ref PublicSubnetCidr2
+  #       Description: SecurityGroupIngress
+  #       FromPort: 22
+  #       ToPort: 22
+  #       IpProtocol: tcp
+  #     Tags: 
+  #       - Key: Name
+  #         Value: "Web Server Security Group for specific resource"
+  #     VpcId: !Ref VPC
+
+  # Ec2Instance1: 
+  #   Type: AWS::EC2::Instance
+  #   Properties: 
+  #     ImageId: ami-0d1cd67c26f5fca19
+  #     InstanceType: t2.nano
+  #     KeyName: ubuntuKeypair
+  #     IamInstanceProfile:
+  #       Fn::ImportValue: AmazonS3ReadOnlyAccessInstanceProfile
+  #     NetworkInterfaces:
+  #       - AssociatePublicIpAddress: true
+  #         DeviceIndex: "0"
+  #         GroupSet: 
+  #           - Ref: SecurityGroupWebServer1
+  #         SubnetId: 
+  #           Ref: PrivateSubnet1
+  #     UserData: 
+  #       Fn::Base64: !Sub |
+  #           #!/bin/bash
+  #           apt-get update -y
+  #           apt-get install unzip awscli -y
+  #           apt-get install apache2 -y
+  #           systemctl start apache2.service
+  #           cd /var/www/html
+  #           sudo rm -f index.html
+  #           aws s3 cp s3://mirza-udagram/udagram.zip .
+  #           sudo unzip -o udagram.zip
+
+  # Ec2Instance2: 
+  #   Type: AWS::EC2::Instance
+  #   Properties: 
+  #     ImageId: ami-0d1cd67c26f5fca19
+  #     InstanceType: t2.nano
+  #     KeyName: ubuntuKeypair
+  #     IamInstanceProfile:
+  #       Fn::ImportValue: AmazonS3ReadOnlyAccessInstanceProfile
+  #     NetworkInterfaces:
+  #       - AssociatePublicIpAddress: true
+  #         DeviceIndex: "0"
+  #         GroupSet: 
+  #           - Ref: SecurityGroupWebServer2
+  #         SubnetId: 
+  #           Ref: PrivateSubnet2
+  #     UserData: 
+  #       Fn::Base64: !Sub |
+  #           #!/bin/bash
+  #           apt-get update -y
+  #           apt-get install unzip awscli -y
+  #           apt-get install apache2 -y
+  #           systemctl start apache2.service
+  #           cd /var/www/html
+  #           sudo rm -f index.html
+  #           aws s3 cp s3://mirza-udagram/udagram.zip .
+  #           sudo unzip -o udagram.zip

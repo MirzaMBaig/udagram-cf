@@ -1,0 +1,1 @@
+aws cloudformation update-stack --stack-name udagramVPC --template-body file://./templates/networks.yml  --region us-west-2    

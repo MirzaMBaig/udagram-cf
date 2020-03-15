@@ -1,0 +1,1 @@
+aws cloudformation update-stack --stack-name udagramWebServer --template-body file://./templates/workloads.yml  --region us-west-2    
