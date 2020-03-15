@@ -1,0 +1,1 @@
+aws cloudformation delete-stack --stack-name udagramWebServer  --region us-west-2    
