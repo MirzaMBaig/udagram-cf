@@ -3,7 +3,7 @@
  ![architechture diagram](./resources/udagram_deployment.png)
 
  ### URL for accessing site:
- http://udagr-webap-1han5ptetj43c-2147280941.us-west-2.elb.amazonaws.com/
+ http://udagr-WebAp-NSGDE23GU77E-1202299331.us-west-2.elb.amazonaws.com
 
 ### CODE 
 The cloud formation code is in templates folder
